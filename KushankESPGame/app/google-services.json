@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "566262488532",
+    "firebase_url": "https://esp-game-squadrun.firebaseio.com",
+    "project_id": "esp-game-squadrun",
+    "storage_bucket": "esp-game-squadrun.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:566262488532:android:e33dda8dc79f5fb5",
+        "android_client_info": {
+          "package_name": "com.kushank.kushankespgame"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "566262488532-jqskbeontgllo1m03b8hg2nq2vcvppnm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kushank.kushankespgame",
+            "certificate_hash": "41ff75a9d4043346853bda22f2e49c9ba7dea521"
+          }
+        },
+        {
+          "client_id": "566262488532-kc5m7r4rlsmj6hq4cn117dktc527dnur.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmPaCa4eCivlzjr17vzOS5XRGgQI913Fc"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "566262488532-kc5m7r4rlsmj6hq4cn117dktc527dnur.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
