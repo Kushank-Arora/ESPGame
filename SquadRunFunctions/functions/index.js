@@ -1,5 +1,6 @@
 const functions = require('firebase-functions')
 const admin = require('firebase-admin')
+const CONSENSUS = 3
 admin.initializeApp(functions.config().firebase)
 
 //called when a new task is created
@@ -36,7 +37,7 @@ exports.ansSelected = functions.database.ref('primImage/{img}/contestant/{uid}/a
 
 		//call ansSelection for further manipulation
 		return countRef.once('value').then(snapshot => {
-			return ansSelection(event, (snapshot.val()<2));
+			return ansSelection(event, (snapshot.val()<CONSENSUS));
 		});
 	});
 
@@ -76,11 +77,19 @@ exports.taskDeleted = functions.database.ref('/users/{uid}/{taskid}')
 		var toBeAdded = [];
 
 		var unAnsRef = rootRef.child('unanswered');
+
 		//update unanswered based upon the status of each question.
 		//if a question is in unanswered, remove it, else add it in unanswered, unless it is answered.
 		promises.push( unAnsRef.once('value').then(snapshot=>{
 				var valDel = []
+				
+				return countRef.transaction(current =>{
+					return (current || 0) + 1;
+				});
+
+				/*
 				snapshot.forEach(q=>{
+					if(q.key=='count') return;
 					if(img.indexOf(q.val())!=-1){
 						toBeDel.push(q.key);
 						valDel.push(q.val());
@@ -90,14 +99,18 @@ exports.taskDeleted = functions.database.ref('/users/{uid}/{taskid}')
 					if(valDel.indexOf(img[i])==-1)
 						toBeAdded.push(img[i]);
 				var nestPromises = [];
+				
 				for(var i=0; i<toBeDel.length; i++)
 					nestPromises.push( unAnsRef.child(toBeDel[i]).remove() );
+
 
 				nestPromises.push( insertQuesUnanswered(toBeAdded, event.data.ref.root) );
 				return Promise.all(nestPromises)
 					.then(()=>{ return; })
 					.catch(er => { console.error('An Error Occured: ', er); });		
-			}) );
+				*/
+			}
+		));
 		
 		return Promise.all(promises)
 				.then(()=>{ return; })
@@ -109,6 +122,7 @@ exports.taskDeleted = functions.database.ref('/users/{uid}/{taskid}')
 function ansSelection(event, notans){
 	console.log('ansSelection Called');
 
+	var rootRef = event.data.ref.root;
 	var contestantRef = event.data.ref.parent.parent;
 	return contestantRef.once('value').then(snapshot=>{
 		var same = true;
@@ -151,6 +165,9 @@ function ansSelection(event, notans){
 				promises.push(
 					changePoint(user[i], task[i], contestantRef.parent.key, 1, event.data.ref.root)
 				);
+			promises.push(
+				rootRef.child('unanswered').remove()
+			)
 		}
 		// if the answers are not same, give 0 point to each user.
 		// remove the user's as contestant for the question
@@ -161,6 +178,10 @@ function ansSelection(event, notans){
 					changePoint(user[i], task[i], contestantRef.parent.key, 0, event.data.ref.root)
 				);
 			
+			promises.push(
+				rootRef.child('unanswered').remove()
+			)
+
 			//set count of contestant to 0
 			promises.push(
 				contestantRef.parent.child('count').set(0)
@@ -190,9 +211,9 @@ function ifNotifyAdmin(rootRef){
 			snapshot.forEach(ques => {
 
 				// if the count of contestant for the question is not 2, then set reached to false, and break the forEach loop by returing true.
-				if(ques.child('count').val()!=2){reached = false; return true;}
+				if(ques.child('count').val()<CONSENSUS){reached = false; return true;}
 
-				// if the contestants for 2, then check if all the answers are same.
+				// if the contestants are 2, then check if all the answers are same.
 				var ans = null;
 				ques.child('contestant').forEach(user => {
 					if(user.child('ans').val()==null)
@@ -323,9 +344,12 @@ function getUnanswered(nQues, ref, snapshot, userQues, uName, rootRef, callback)
 
 	// set the count to the min unanswered and the question required to be provided to the new user.
 	var childCount = Math.min(snapshot.numChildren(), nQues);
+	var unansCount = snapshot.child('count').val();
 	snapshot.forEach(ch=>{
 		if(userQues.indexOf(ch.val())==-1)
 		{
+			if(ch.key == 'count')
+				return;
 			ans.push(ch.val());
 			keys.push(ch.key);
 			childCount--;
@@ -334,10 +358,23 @@ function getUnanswered(nQues, ref, snapshot, userQues, uName, rootRef, callback)
 		}
 	})
 
-	// remove those questions from unanswered.
 	var promises = [];
-	for(var i=0; i<keys.length; i++)
-		promises.push(ref.child(keys[i]).remove());
+
+	/*
+	if(unansCount==){
+		// remove those questions from unanswered.
+		for(var i=0; i<keys.length; i++)
+			promises.push(ref.child(keys[i]).remove());
+	}else
+	*/
+	{
+		promises.push(
+			ref.child('count').transaction(current =>{
+				return (current || 0) - 1;
+			})
+		);
+	}
+
 	
 	// send the questions to the user.
 	promises.push(callback(ans));
@@ -371,7 +408,7 @@ function getNewQuestions(nQues, uName, rootRef, userQues, callback)
 		var promise=null;
 		snapshot.forEach(ch=>{
 			childCount--;
-			if(ch.child('count').val()<2 && userQues.indexOf(ch.key)==-1)
+			if(ch.child('count').val()<CONSENSUS && userQues.indexOf(ch.key)==-1)
 				img.push(ch.key);
 
 			// if got all the possible questions, then call the util to get random questions.
@@ -423,6 +460,11 @@ function insertQuesUnanswered(ques, rootRef)
 			unAnsRef.push().set(ques[i])
 		);
 	}
+
+	promises.push(
+		unAnsRef.child('count').set(CONSENSUS)
+	);
+
 	return Promise.all(promises).then(() => {
   		return;
 	}).catch(er => {
