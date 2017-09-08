@@ -83,6 +83,8 @@ public class newTaskActivity extends AppCompatActivity {
         mpQues = new HashMap<>();
         mpQuesList = new HashMap<>();
         questions = new HashMap<>();
+
+        timeStart = Calendar.getInstance().getTimeInMillis();
     }
 
     @Override
@@ -202,7 +204,7 @@ public class newTaskActivity extends AppCompatActivity {
 
     //update UI based upon the questions got.
     void updateUI(){
-        timeStart = Calendar.getInstance().getTimeInMillis();
+
         progressBar.setVisibility(View.INVISIBLE);
         layout.removeAllViews();
         int i=0;
@@ -220,13 +222,19 @@ public class newTaskActivity extends AppCompatActivity {
         {
             public void run()
             {
-                try{
-                    long timeElapsed = (Calendar.getInstance().getTimeInMillis() - timeStart)/1000;
-                    timertv.setText(timeElapsed + " secs Elapsed");
-                }catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try{
+                            long timeElapsed = (Calendar.getInstance().getTimeInMillis() - timeStart)/1000;
+                            timertv.setText(timeElapsed + " secs Elapsed");
+                        }catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
             }
         }, delay, period);
         /*
@@ -411,7 +419,7 @@ public class newTaskActivity extends AppCompatActivity {
 
     //set the ans for the ques in the database.
     // which will further call firebase cloud functions to handle, database consistence.
-    private void setAns(String quesId, String userId, String s,final int[] count , final int n) {
+    private void setAns(final String quesId, final String userId, final String s, final int[] count , final int n) {
         mFirebaseDatabase.getReference()
                 .child("primImage")
                 .child(quesId)
@@ -424,17 +432,35 @@ public class newTaskActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<Void> task) {
                         if(task.isSuccessful())
                         {
-                            count[0]++;
-                            if(count[0]==n) {
-                                progressBar.setVisibility(View.INVISIBLE);
-                                finish();
-                            }
+                            mFirebaseDatabase.getReference()
+                                    .child("primImage")
+                                    .child(quesId)
+                                    .child("contestant")
+                                    .child(userId)
+                                    .child("time")
+                                    .setValue(Calendar.getInstance().getTimeInMillis()-timeStart).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    if(task.isSuccessful()) {
+                                        count[0]++;
+                                        if (count[0] == n) {
+                                            progressBar.setVisibility(View.INVISIBLE);
+                                            finish();
+                                        }
+                                    }
+                                    else{
+                                        Toast.makeText(newTaskActivity.this, "Operation Unsuccessful!", Toast.LENGTH_SHORT).show();
+                                        progressBar.setVisibility(View.INVISIBLE);
+                                    }
+                                }
+                            });
                         }else{
                             Toast.makeText(newTaskActivity.this, "Operation Unsuccessful!", Toast.LENGTH_SHORT).show();
                             progressBar.setVisibility(View.INVISIBLE);
                         }
                     }
                 });
+
     }
 
     //called to validate the submission

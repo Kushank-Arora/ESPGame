@@ -1,6 +1,6 @@
 const functions = require('firebase-functions')
 const admin = require('firebase-admin')
-const CONSENSUS = 3
+const CONSENSUS = 4
 admin.initializeApp(functions.config().firebase)
 
 //called when a new task is created
@@ -83,7 +83,7 @@ exports.taskDeleted = functions.database.ref('/users/{uid}/{taskid}')
 		promises.push( unAnsRef.once('value').then(snapshot=>{
 				var valDel = []
 				
-				return countRef.transaction(current =>{
+				return unAnsRef.child('count').transaction(current =>{
 					return (current || 0) + 1;
 				});
 
