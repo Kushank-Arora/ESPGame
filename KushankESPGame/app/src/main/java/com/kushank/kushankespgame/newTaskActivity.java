@@ -3,6 +3,7 @@ package com.kushank.kushankespgame;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -31,8 +32,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 //Activity to get questions for the new Task.
 public class newTaskActivity extends AppCompatActivity {
@@ -46,6 +50,7 @@ public class newTaskActivity extends AppCompatActivity {
     private LinearLayout layout;
     private Map<DatabaseReference, ChildEventListener> mpQuesList;
     private Map<String, Question> questions;
+    long timeStart=-1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -197,9 +202,50 @@ public class newTaskActivity extends AppCompatActivity {
 
     //update UI based upon the questions got.
     void updateUI(){
+        timeStart = Calendar.getInstance().getTimeInMillis();
         progressBar.setVisibility(View.INVISIBLE);
         layout.removeAllViews();
         int i=0;
+
+        final TextView timertv = new TextView(this);
+        long timeElapsed = Calendar.getInstance().getTimeInMillis() - timeStart;
+        timertv.setText(timeElapsed + " secs Elapsed");
+        timertv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        layout.addView(timertv);
+
+        int delay = 0; // delay for 0 sec.
+        int period = 1000; // repeat every 1 sec.
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask()
+        {
+            public void run()
+            {
+                try{
+                    long timeElapsed = (Calendar.getInstance().getTimeInMillis() - timeStart)/1000;
+                    timertv.setText(timeElapsed + " secs Elapsed");
+                }catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }, delay, period);
+        /*
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable(){
+            public void run() {
+                try{
+                    long timeElapsed = Calendar.getInstance().getTimeInMillis() - timeStart;
+                    timertv.setText(timeElapsed + " secs Elapsed");
+                }catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        };
+        handler.postAtTime(runnable, System.currentTimeMillis()+1000);
+        handler.postDelayed(runnable, 1000);
+        */
+
         for(final String quesKey: questions.keySet())
         {
             i++;
@@ -279,7 +325,7 @@ public class newTaskActivity extends AppCompatActivity {
         Button button = new Button(this);
         button.setText("Submit");
         button.setAllCaps(false);
-        button.setLayoutParams(new LinearLayout.LayoutParams(200, ViewGroup.LayoutParams.WRAP_CONTENT));
+        button.setLayoutParams(new LinearLayout.LayoutParams(400, ViewGroup.LayoutParams.WRAP_CONTENT));
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -307,7 +353,7 @@ public class newTaskActivity extends AppCompatActivity {
         Button exit = new Button(this);
         exit.setText("Exit");
         exit.setAllCaps(false);
-        exit.setLayoutParams(new LinearLayout.LayoutParams(200, ViewGroup.LayoutParams.WRAP_CONTENT));
+        exit.setLayoutParams(new LinearLayout.LayoutParams(400, ViewGroup.LayoutParams.WRAP_CONTENT));
         exit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
